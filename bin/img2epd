@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+
+# PyEPD
+# Gordon Inggs (gordon.e.inggs@ieee.org)
+# November 2017
+
+from pyepd import ImageHandler, DisplayPanelController
+import tempfile
+import errno
+import argparse
+import os.path
+
+
+# Modified from https://stackoverflow.com/a/25868839
+def is_writable(path):
+    try:
+        dir_path = os.path.dirname(path)
+        with tempfile.TemporaryFile(dir=dir_path) as testfile:
+            pass
+
+    except OSError as e:
+        if e.errno == errno.EACCES:  # 13
+            return False
+
+    return True
+
+
+CONTROLLERS = {'TCM-P74-230': DisplayPanelController.TC_P74_230}
+DEFAULT_CONTROLLER = 'TCM-P74-230'
+
+# Argument parsing
+parser = argparse.ArgumentParser()
+parser.add_argument("input_image", type=str,
+                    help="Path of input image file")
+parser.add_argument("output_image", type=str,
+                    help="Path of output image file")
+parser.add_argument("-w", "--white-background", action="store_true",
+                    help="Set background to be white. Default is black.")
+parser.add_argument("-r", "--rotate", action="count",
+                    help="Rotate image 90° right. May be used multiple times.")
+parser.add_argument("-d", "--device", type=str, choices=CONTROLLERS.keys(),
+                    help="Select display panel controller. Default is {}.".format(DEFAULT_CONTROLLER))
+args = parser.parse_args()
+
+# Argument validation and wrangling
+# Input image
+if not os.path.exists(args.input_image):
+    raise IOError("{} doesn't exist!".format(args.input_image))
+
+# Output location and access
+if not os.path.exists(os.path.dirname(args.output_image)):
+    raise IOError("{} doesn't exist".format(
+        os.path.dirname(args.output_image)))
+elif not is_writable(args.output_image):
+    raise IOError("Can't write to {}".format(args.output_image))
+
+# Setting up EPD controller
+if args.device is None:
+    args.device = DEFAULT_CONTROLLER
+device = CONTROLLERS[args.device]()
+
+# Setting background flag if present
+if args.white_background:
+    background = 255
+else:
+    background = 0
+
+if args.rotate is not None:
+    rotate_count = args.rotate
+else:
+    rotate_count = 0
+
+# Acquiring the image
+with ImageHandler.acquire_and_normalise(args.input_image, device, background, rotate_count) as image:
+    # Converting it
+    image_data = ImageHandler.convert(image)
+    # Generating the EPD
+    output_image_data = device.assemble_epd(image_data)
+    # Writing out the file
+    output_image_data.tofile(args.output_image)
