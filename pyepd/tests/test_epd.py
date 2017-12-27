@@ -74,7 +74,8 @@ class TestPYEPD(TestCase):
         # Background colour
         with generate_random_image(size=undersize, override_colour_value=255) as undersized_image, \
                 generate_image_file(undersized_image) as undersized_image_file:
-            with pyepd.ImageHandler.acquire_and_normalise(undersized_image_file.name, tcm_p74_230) as output_image:
+            with pyepd.ImageHandler.acquire_and_normalise(undersized_image_file.name, tcm_p74_230,
+                                                          background_colour=0) as output_image:
                 source_data = numpy.array(undersized_image.getdata())
                 output_data = numpy.array(output_image.getdata())
 

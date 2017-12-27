@@ -35,7 +35,9 @@ parser.add_argument("input_image", type=str,
 parser.add_argument("output_image", type=str,
                     help="Path of output image file")
 parser.add_argument("-w", "--white-background", action="store_true",
-                    help="Set background to be white. Default is black.")
+                    help="Set background to be white. Default is median of image colours.")
+parser.add_argument("-b", "--black-background", action="store_true",
+                    help="Set background to be black. Default is median of image colours.")
 parser.add_argument("-r", "--rotate", action="count",
                     help="Rotate image 90° right. May be used multiple times.")
 parser.add_argument("-d", "--device", type=str, choices=CONTROLLERS.keys(),
@@ -62,8 +64,10 @@ device = CONTROLLERS[args.device]()
 # Setting background flag if present
 if args.white_background:
     background = 255
-else:
+elif args.black_background:
     background = 0
+else:
+    background = -1
 
 if args.rotate is not None:
     rotate_count = args.rotate

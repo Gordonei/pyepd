@@ -9,13 +9,13 @@ from contextlib import contextmanager
 
 
 @contextmanager
-def acquire_and_normalise(filename, display_panel_controller, background_colour=0, rotate_count=0):
+def acquire_and_normalise(filename, display_panel_controller, background_colour=-1, rotate_count=0):
     """
     Reads in input image, and converts to correct size. Adds a border if necessary.
 
     :param filename: path to image file to use
     :param display_panel_controller: display panel controller that is being used.
-    :param background_colour: default background colour value to use (0 is black, 255 is white).
+    :param background_colour: default background colour value to use (0 is black, 255 is white, -1 is median).
     :param rotate_count: rotate image by specified number of 90° rotations
     :return: PIL image object
     """
@@ -31,8 +31,18 @@ def acquire_and_normalise(filename, display_panel_controller, background_colour=
             # Resizing
             img.thumbnail(size, Image.ANTIALIAS)
 
+            # finding the median background colour
+            if background_colour is -1:
+                img_data = numpy.asarray(img)
+                background_colours = tuple(
+                    numpy.median(img_data, axis=(0, 1))
+                        .astype(numpy.uint8)
+                )
+            else:
+                background_colours = (background_colour, background_colour, background_colour)
+
             # Centering the image, and adding a border
-            background = Image.new('RGB', size, (background_colour, background_colour, background_colour))
+            background = Image.new('RGB', size, background_colours)
             background.paste(img,
                              ((x_res - img.size[0]) // 2, (y_res - img.size[1]) // 2)
                              )
